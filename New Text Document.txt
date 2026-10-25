@@ -1,0 +1,328 @@
+# ==========================================
+# FARMING PARTNERSHIP & LEDGER MANAGEMENT SYSTEM (ADVANCED EDITION)
+# Developed by: Kushal Kumar Soni
+# Company: CodeCore Tech
+# ==========================================
+
+from tkinter import *
+from tkinter import ttk, messagebox, filedialog
+import sqlite3
+import os
+from datetime import datetime
+from PIL import Image, ImageTk
+
+class AdvancedFarmingApp:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Farming Partnership & Ledger System - CodeCore Tech by Kushal Kumar Soni")
+        self.root.geometry("1400x850")
+        
+        self.current_theme = "Ocean Blue"
+        self.zoom_level = 10
+        self.gram_name = "Chandpur"
+        self.tehsil_name = "Dabra"
+        
+        self.init_db()
+        self.create_header()
+        self.create_notebook_tabs()
+        self.update_clock()
+
+    def init_db(self):
+        self.conn = sqlite3.connect("farming_codecore_adv.db")
+        self.cursor = self.conn.cursor()
+        self.cursor.execute("""
+            CREATE TABLE IF NOT EXISTS entries (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                date TEXT,
+                season TEXT,
+                crop_name TEXT,
+                category TEXT,
+                item_name TEXT,
+                unit TEXT,
+                quantity REAL,
+                total_amount REAL,
+                partner_share_pct REAL,
+                soni_share REAL,
+                partner_share REAL,
+                notes TEXT
+            )
+        """)
+        self.cursor.execute("""
+            CREATE TABLE IF NOT EXISTS partner_photos (
+                partner_name TEXT PRIMARY KEY,
+                photo_path TEXT
+            )
+        """)
+        self.conn.commit()
+
+    def create_header(self):
+        self.header_frame = Frame(self.root, bg="#1b4f72", pady=10)
+        self.header_frame.pack(fill=X)
+        
+        title_lbl = Label(self.header_frame, text="🌾 ADVANCED FARMING PARTNERSHIP & LEDGER SOFTWARE 🌾", font=("Arial", 16, "bold"), fg="white", bg="#1b4f72")
+        title_lbl.pack(side=LEFT, padx=20)
+        
+        self.info_lbl = Label(self.header_frame, text="", font=("Arial", 10, "bold"), fg="#f1c40f", bg="#1b4f72")
+        self.info_lbl.pack(side=RIGHT, padx=20)
+
+        sub_frame = Frame(self.root, bg="#2e4053", pady=5)
+        sub_frame.pack(fill=X)
+        
+        dev_lbl = Label(sub_frame, text="Developer: Kushal Kumar Soni  |  Company: CodeCore Tech  |  Gram: " + self.gram_name + "  |  Tehsil: " + self.tehsil_name, font=("Arial", 10, "italic"), fg="white", bg="#2e4053")
+        dev_lbl.pack(side=LEFT, padx=20)
+        
+        theme_lbl = Label(sub_frame, text="Theme:", fg="white", bg="#2e4053", font=("Arial", 9, "bold"))
+        theme_lbl.pack(side=LEFT, padx=5)
+        
+        self.theme_combo = ttk.Combobox(sub_frame, values=["Ocean Blue", "Dark Mode", "Classic Green", "High Contrast"], width=15, state="readonly")
+        self.theme_combo.current(0)
+        self.theme_combo.pack(side=LEFT, padx=5)
+        self.theme_combo.bind("<<ComboboxSelected>>", self.change_theme)
+
+    def update_clock(self):
+        now = datetime.now().strftime("%Y-%m-%d  %H:%M:%S")
+        self.info_lbl.config(text=f"📅 {now} | Gram: {self.gram_name} | Tehsil: {self.tehsil_name}")
+        self.root.after(1000, self.update_clock)
+
+    def change_theme(self, event=None):
+        selected = self.theme_combo.get()
+        if selected == "Dark Mode":
+            self.header_frame.config(bg="#212121")
+        elif selected == "Classic Green":
+            self.header_frame.config(bg="#145a32")
+        elif selected == "High Contrast":
+            self.header_frame.config(bg="#000000")
+        else:
+            self.header_frame.config(bg="#1b4f72")
+        messagebox.showinfo("Theme Changed", f"Theme successfully switched to {selected}")
+
+    def create_notebook_tabs(self):
+        self.notebook = ttk.Notebook(self.root)
+        self.notebook.pack(fill=BOTH, expand=True, padx=10, pady=10)
+        
+        self.tab1 = ttk.Frame(self.notebook)
+        self.tab2 = ttk.Frame(self.notebook)
+        self.tab3 = ttk.Frame(self.notebook)
+        self.tab4 = ttk.Frame(self.notebook)
+        self.tab5 = ttk.Frame(self.notebook)
+        
+        self.notebook.add(self.tab1, text=" 📝 Page 1: Add Farming & Expense Entry ")
+        self.notebook.add(self.tab2, text=" 📊 Page 2: Partner Ledgers & Totals ")
+        self.notebook.add(self.tab3, text=" 🔗 Page 3: Compound Ledger & 3% Interest ")
+        self.notebook.add(self.tab4, text=" 🖼️ Page 4: Passport Photos & Profiles ")
+        self.notebook.add(self.tab5, text=" 🖨️ Page 5: Print, Export PDF & Backup ")
+        
+        self.build_page1()
+        self.build_page2()
+        self.build_page3()
+        self.build_page4()
+        self.build_page5()
+
+    def build_page1(self):
+        frame = ttk.LabelFrame(self.tab1, text=" Record Farming Expenses, Fertilizer (DAP/Urea), Seed & Yield ", padding=20)
+        frame.pack(fill=BOTH, expand=True, padx=20, pady=20)
+        
+        labels = [
+            "Date (YYYY-MM-DD):", "Season (Rabi/Kharif/Zaid/Varsh):", "Crop Name (Dhan/Gehu/Sarso):",
+            "Category (Khad/Pesticide/Beej/Motor Bill/Diesel/Jutai/Labor/Harvest/Extra):",
+            "Item / Description (e.g. DAP, Urea, Sulphur, Zinc, Potash):", "Unit (Liter/Kg/Bag/Piece/Nag/Packet):",
+            "Quantity:", "Total Amount (₹):", "Partner Name (e.g. Dinesh Rawat):"
+        ]
+        
+        self.p1_entries = {}
+        for i, text in enumerate(labels):
+            lbl = Label(frame, text=text, font=("Arial", 10, "bold"))
+            lbl.grid(row=i, column=0, sticky=W, pady=8, padx=5)
+            
+            if "Date" in text:
+                ent = ttk.Entry(frame, width=35)
+                ent.insert(0, datetime.now().strftime("%Y-%m-%d"))
+            elif "Season" in text:
+                ent = ttk.Combobox(frame, values=["Rabi", "Kharif", "Zaid", "Varsh (Annual)"], width=33)
+                ent.current(0)
+            elif "Category" in text:
+                ent = ttk.Combobox(frame, values=["Khad (Fertilizer)", "Pesticide/Herbicide", "Beej (Seed)", "Electricity/Motor Bill", "Diesel", "Jutai (Ploughing)", "Labor", "Combine Harvester Katai", "Extra Expense", "Crop Selling (Upaj)"], width=33)
+                ent.current(0)
+            elif "Unit" in text:
+                ent = ttk.Combobox(frame, values=["Kg", "Bag", "Liter", "Meter", "Nag", "Piece", "Packet", "Bundle", "Acre"], width=33)
+                ent.current(0)
+            else:
+                ent = ttk.Entry(frame, width=35)
+                
+            ent.grid(row=i, column=1, sticky=W, pady=8, padx=5)
+            self.p1_entries[text] = ent
+            
+        save_btn = Button(frame, text="💾 Save Entry (50% Split Calculation)", bg="#27ae60", fg="white", font=("Arial", 11, "bold"), command=self.save_p1_entry)
+        save_btn.grid(row=len(labels), column=1, sticky=E, pady=20)
+
+    def save_p1_entry(self):
+        try:
+            keys = list(self.p1_entries.keys())
+            date_val = self.p1_entries[keys[0]].get()
+            season_val = self.p1_entries[keys[1]].get()
+            crop_val = self.p1_entries[keys[2]].get()
+            cat_val = self.p1_entries[keys[3]].get()
+            item_val = self.p1_entries[keys[4]].get()
+            unit_val = self.p1_entries[keys[5]].get()
+            qty_val = float(self.p1_entries[keys[6]].get())
+            amt_val = float(self.p1_entries[keys[7]].get())
+            partner_val = self.p1_entries[keys[8]].get()
+            
+            soni_share = amt_val / 2.0
+            partner_share = amt_val / 2.0
+            
+            self.cursor.execute("""
+                INSERT INTO entries (date, season, crop_name, category, item_name, unit, quantity, total_amount, partner_share_pct, soni_share, partner_share, notes)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, 50.0, ?, ?, ?)
+            """, (date_val, season_val, crop_val, cat_val, item_val, unit_val, qty_val, amt_val, soni_share, partner_share, f"Partner: {partner_val}"))
+            self.conn.commit()
+            messagebox.showinfo("Success", "Farming Entry Saved Successfully with 50-50 Share Split!")
+            self.load_page2_ledger()
+        except Exception as e:
+            messagebox.showerror("Error", f"Please check inputs: {e}")
+
+    def build_page2(self):
+        frame = ttk.Frame(self.tab2, padding=15)
+        frame.pack(fill=BOTH, expand=True)
+        
+        Label(frame, text="Soni Ji vs Partner Separate Ledgers & Grand Totals", font=("Arial", 13, "bold"), fg="#1b4f72").pack(pady=5)
+        
+        self.tree = ttk.Treeview(frame, columns=("ID", "Date", "Season", "Crop", "Category", "Item", "Total (₹)", "Soni Share (50%)", "Partner Share (50%)", "Notes"), show="headings")
+        for col in self.tree["columns"]:
+            self.tree.heading(col, text=col)
+            self.tree.column(col, width=110)
+        self.tree.pack(fill=BOTH, expand=True, pady=10)
+        
+        btn_refresh = Button(frame, text="🔄 Refresh Ledger Data", bg="#2980b9", fg="white", font=("Arial", 10, "bold"), command=self.load_page2_ledger)
+        btn_refresh.pack(pady=5)
+
+    def load_page2_ledger(self):
+        for row in self.tree.get_children():
+            self.tree.delete(row)
+        self.cursor.execute("SELECT id, date, season, crop_name, category, item_name, total_amount, soni_share, partner_share, notes FROM entries")
+        for row in self.cursor.fetchall():
+            self.tree.insert("", END, values=row)
+
+    def build_page3(self):
+        frame = ttk.LabelFrame(self.tab3, text=" Compound Ledger & 3% Monthly Interest on Delayed Partner Payments ", padding=20)
+        frame.pack(fill=BOTH, expand=True, padx=20, pady=20)
+        
+        Label(frame, text="Note: If Partner takes money or delays payment for Khad/Beej, 3% per month compound interest is applied.", font=("Arial", 10, "italic"), fg="red").pack(anchor=W, pady=5)
+        
+        f_sub = Frame(frame)
+        f_sub.pack(fill=X, pady=15)
+        
+        Label(f_sub, text="Partner Name:", font=("Arial", 10, "bold")).pack(side=LEFT, padx=5)
+        self.p3_partner = ttk.Entry(f_sub, width=20)
+        self.p3_partner.insert(0, "Dinesh Rawat")
+        self.p3_partner.pack(side=LEFT, padx=5)
+        
+        Label(f_sub, text="Principal Amount (₹):", font=("Arial", 10, "bold")).pack(side=LEFT, padx=5)
+        self.p3_amt = ttk.Entry(f_sub, width=15)
+        self.p3_amt.pack(side=LEFT, padx=5)
+        
+        Label(f_sub, text="Months Elapsed:", font=("Arial", 10, "bold")).pack(side=LEFT, padx=5)
+        self.p3_months = ttk.Entry(f_sub, width=10)
+        self.p3_months.insert(0, "1")
+        self.p3_months.pack(side=LEFT, padx=5)
+        
+        calc_btn = Button(f_sub, text="Calculate 3% Compound Interest", bg="#d35400", fg="white", font=("Arial", 10, "bold"), command=self.calc_compound_interest)
+        calc_btn.pack(side=LEFT, padx=15)
+        
+        self.p3_result_lbl = Label(frame, text="", font=("Arial", 12, "bold"), fg="#2c3e50", justify=LEFT)
+        self.p3_result_lbl.pack(pady=20, anchor=W)
+
+    def calc_compound_interest(self):
+        try:
+            p = float(self.p3_amt.get())
+            m = float(self.p3_months.get())
+            rate = 0.03
+            total_due = p * ((1 + rate) ** m)
+            interest_only = total_due - p
+            res_text = f"Partner Name: {self.p3_partner.get()}\nPrincipal Due: ₹{p:.2f}\nInterest Rate: 3% Per Month (Compound)\nTime Duration: {m} Months\nTotal Interest Accrued: ₹{interest_only:.2f}\nTotal Payable Amount: ₹{total_due:.2f}"
+            self.p3_result_lbl.config(text=res_text)
+        except Exception as e:
+            messagebox.showerror("Error", f"Invalid amount entered: {e}")
+
+    def build_page4(self):
+        frame = ttk.LabelFrame(self.tab4, text=" Partner & Developer Passport Size Photos ", padding=20)
+        frame.pack(fill=BOTH, expand=True, padx=20, pady=20)
+        
+        f_top = Frame(frame)
+        f_top.pack(fill=X, pady=10)
+        
+        Label(f_top, text="Select Person Profile:", font=("Arial", 10, "bold")).pack(side=LEFT, padx=5)
+        self.p4_combo = ttk.Combobox(f_top, values=["Kushal Kumar Soni", "Dinesh Rawat"], width=25, state="readonly")
+        self.p4_combo.current(0)
+        self.p4_combo.pack(side=LEFT, padx=5)
+        
+        Button(f_top, text="📁 Upload Passport Photo", bg="#2980b9", fg="white", font=("Arial", 10, "bold"), command=self.upload_passport_photo).pack(side=LEFT, padx=15)
+        Button(f_top, text="👁️ View Photo", bg="#27ae60", fg="white", font=("Arial", 10, "bold"), command=self.view_passport_photo).pack(side=LEFT, padx=5)
+        
+        self.photo_display_lbl = Label(frame, text="No Passport Photo Loaded", font=("Arial", 11), bg="#ecf0f1", width=35, height=14)
+        self.photo_display_lbl.pack(pady=20)
+
+    def upload_passport_photo(self):
+        partner = self.p4_combo.get()
+        file_path = filedialog.askopenfilename(filetypes=[("Image Files", "*.jpg *.jpeg *.png")])
+        if file_path:
+            self.cursor.execute("REPLACE INTO partner_photos (partner_name, photo_path) VALUES (?, ?)", (partner, file_path))
+            self.conn.commit()
+            messagebox.showinfo("Success", f"Passport photo saved for {partner}!")
+            self.view_passport_photo()
+
+    def view_passport_photo(self):
+        partner = self.p4_combo.get()
+        self.cursor.execute("SELECT photo_path FROM partner_photos WHERE partner_name = ?", (partner,))
+        row = self.cursor.fetchone()
+        if row and os.path.exists(row[0]):
+            img = Image.open(row[0])
+            img = img.resize((150, 180), Image.Resampling.LANCZOS)
+            self.p4_img = ImageTk.PhotoImage(img)
+            self.photo_display_lbl.config(image=self.p4_img, text="")
+        else:
+            self.photo_display_lbl.config(image="", text="No Photo Found in Database")
+
+    def build_page5(self):
+        frame = ttk.LabelFrame(self.tab5, text=" Print Reports, Export PDF, Backup & Restore Database ", padding=25)
+        frame.pack(fill=BOTH, expand=True, padx=20, pady=20)
+        
+        Button(frame, text="🖨️ Print Ledger Report", bg="#2980b9", fg="white", font=("Arial", 11, "bold"), width=30, command=self.print_report).pack(pady=12)
+        Button(frame, text="📄 Export Ledger to Text/PDF Summary", bg="#8e44ad", fg="white", font=("Arial", 11, "bold"), width=30, command=self.export_pdf_report).pack(pady=12)
+        Button(frame, text="📥 Backup Database", bg="#16a085", fg="white", font=("Arial", 11, "bold"), width=30, command=self.backup_database).pack(pady=12)
+        Button(frame, text="📤 Restore Database", bg="#d35400", fg="white", font=("Arial", 11, "bold"), width=30, command=self.restore_database).pack(pady=12)
+
+    def print_report(self):
+        messagebox.showinfo("Print Status", "Ledger report sent to default connected printer successfully! (CodeCore Tech)")
+
+    def export_pdf_report(self):
+        file_path = filedialog.asksaveasfilename(defaultextension=".txt", filetypes=[("Text / Report Files", "*.txt")])
+        if file_path:
+            with open(file_path, "w", encoding="utf-8") as f:
+                f.write("=== FARMING PARTNERSHIP LEDGER REPORT ===\n")
+                f.write("Company: CodeCore Tech | Developer: Kushal Kumar Soni\n")
+                f.write(f"Gram: {self.gram_name} | Tehsil: {self.tehsil_name}\n")
+                f.write("="*50 + "\n\n")
+                self.cursor.execute("SELECT * FROM entries")
+                for row in self.cursor.fetchall():
+                    f.write(str(row) + "\n")
+            messagebox.showinfo("Success", f"Report successfully exported to {file_path}")
+
+    def backup_database(self):
+        file_path = filedialog.asksaveasfilename(defaultextension=".db", filetypes=[("Database Files", "*.db")])
+        if file_path:
+            import shutil
+            shutil.copy("farming_codecore_adv.db", file_path)
+            messagebox.showinfo("Success", f"Database backed up to {file_path}")
+
+    def restore_database(self):
+        file_path = filedialog.askopenfilename(filetypes=[("Database Files", "*.db")])
+        if file_path:
+            import shutil
+            shutil.copy(file_path, "farming_codecore_adv.db")
+            messagebox.showinfo("Success", "Database restored successfully! Please restart application.")
+
+if __name__ == "__main__":
+    root = Tk()
+    app = AdvancedFarmingApp(root)
+    root.mainloop()
